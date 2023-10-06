@@ -11,11 +11,11 @@ classifiers = [
 ]
 dependencies = [
     "click",
+    "google-api-python-client",
+    "ocrmac",
     "opencv-python",
     "pytube",
-    "pyserde",
-    "ocrmac"
-
+    "pyserde"
 ]
 
 [project.urls]
