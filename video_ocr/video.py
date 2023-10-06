@@ -1,39 +1,18 @@
 from dataclasses import dataclass
 from pathlib import Path
-from typing import NewType, Optional
+from typing import NewType
 
 import cv2
 from config import DATA_DIR, get_logger
-from ocr import text_from_image
-
-# from ocrmac import text_from_image
 from playlist import Playlist
 from pytube import YouTube
-from serde import field, serde
+from serde import SerdeError, field, serde
 from serde.json import from_json, to_json
 
+from video_ocr.ocr import OCRResult, detect_text
+
 logger = get_logger(__name__)
-
-# https://github.com/straussmaximilian/ocrmac/blob/2a7513d0ccb4069e4226d51eae32e5335506815d/ocrmac/ocrmac.py#L96-L101
-BBox = NewType("BBox", tuple[int, int, int, int])  # x, y, weight, height
-OCRResult = NewType(
-    "OCRResult", tuple[str, float, BBox]
-)  # result text, confidence, bounding box
 Frames = NewType("Frames", dict[Path, list[OCRResult]])
-
-
-def read_text_macos(frame: Path, lang: Optional[list] = None) -> list[OCRResult]:
-    if lang is None:
-        lang = ["ja"]
-
-    try:
-        res = text_from_image(str(frame), language_preference=lang)
-
-    except Exception as e:
-        logger.error("Error: OCR failed")
-        logger.error(e)
-        return []
-    return res
 
 
 def frames_serializer(frames: Frames) -> dict[str, list]:
@@ -93,6 +72,7 @@ class Video:
         self.frames_dir.mkdir(parents=True, exist_ok=True)
         index = 0
 
+        logger.info("start converting image to frames...")
         while vid.isOpened():
             ret, frame = vid.read()
 
@@ -101,7 +81,6 @@ class Video:
                 break
 
             if index % self.frame_rate == 0:
-                logger.info(f"frame: {index}")
                 frame_path = self.frames_dir / f"{prefix}{index}.png"
 
                 cv2.imwrite(str(frame_path), frame)
@@ -109,6 +88,7 @@ class Video:
 
             index += 1
 
+        logger.info("finished converting image to frames.")
         vid.release()
         cv2.destroyAllWindows()
 
@@ -120,13 +100,14 @@ class Video:
     def get_frames_ocr(self) -> Frames:
         frames = self.frames
 
+        logger.info("start OCR on frames...")
         for frame in frames.keys():
-            res = read_text_macos(frame)
+            res = detect_text(str(frame), languages=["ja"])
 
             if res:
-                logger.info(f"{frame} :{res}")
                 frames[frame] = res
 
+        logger.info("completed OCR on frames.")
         self.frames = Frames(frames)
 
         return self.frames
@@ -150,7 +131,7 @@ class Video:
         return from_json(cls, s)
 
 
-RUN_OCR = False
+RUN_OCR = True
 if __name__ == "__main__":
     logger.info(Playlist.json_file)
 
@@ -165,9 +146,13 @@ if __name__ == "__main__":
 
     logger.info(f"{len_video_ids=}")
 
-    for i, video_id in enumerate(video_ids[0:1]):
+    for i, video_id in enumerate(video_ids):
         logger.info(f"{(100*i) // len_video_ids}%, {video_id=}")
-        video = Video(video_id)
+
+        try:
+            video = Video.from_json(video_id)
+        except SerdeError:
+            video = Video(video_id)
 
         if not video.video_path.exists():
             video.download_video()
@@ -177,7 +162,6 @@ if __name__ == "__main__":
 
         logger.info(f"{video.to_json()=}")
 
-        if RUN_OCR:
+        if RUN_OCR:  # and not any(video.frames.values()):
             video.get_frames_ocr()
-
-        video.to_json()
+            logger.info(f"{video.to_json()=}")
