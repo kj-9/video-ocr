@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Optional
 
 import cv2
 from config import DATA_DIR, get_logger
@@ -93,7 +94,7 @@ class Video:
         return from_json(Video, s)
 
 
-def read_text_macos(frame: Path, lang: list = None) -> str:
+def read_text_macos(frame: Path, lang: Optional[list] = None) -> str:
     if lang is None:
         lang = ["ja"]
     return ocrmac.OCR(str(frame), language_preference=lang).recognize()

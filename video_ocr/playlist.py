@@ -1,5 +1,5 @@
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import ClassVar
 
@@ -15,7 +15,7 @@ logger = get_logger(__name__)
 @serde
 class Playlist:
     playlist_id: str = "UUcWWwmgV5dLmqUJCtAZqHfw"  # 中島浩二チャンネル
-    items: list[dict] = None
+    items: list[dict] = field(default_factory=list)
     json_file: ClassVar[Path] = DATA_DIR / "playlist.json"
 
     def __get_api(self) -> googleapiclient.discovery.Resource:
@@ -61,7 +61,7 @@ class Playlist:
         return items
 
     def to_video_ids(self) -> list[str]:
-        return list(map(lambda x: x.get("contentDetails").get("videoId"), self.items))
+        return list(map(lambda x: x.get("contentDetails").get("videoId"), self.items))  # type: ignore
 
 
 if __name__ == "__main__":
