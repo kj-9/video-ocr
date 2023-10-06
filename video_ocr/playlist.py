@@ -14,8 +14,8 @@ logger = get_logger(__name__)
 @dataclass
 @serde
 class Playlist:
-    playlist_id: str = "UUcWWwmgV5dLmqUJCtAZqHfw"  # 中島浩二チャンネル
     items: list[dict] = field(default_factory=list)
+    playlist_id: str = "UUcWWwmgV5dLmqUJCtAZqHfw"  # 中島浩二チャンネル
     json_file: ClassVar[Path] = DATA_DIR / "playlist.json"
 
     def __get_api(self) -> googleapiclient.discovery.Resource:
@@ -62,6 +62,12 @@ class Playlist:
 
     def to_video_ids(self) -> list[str]:
         return list(map(lambda x: x.get("contentDetails").get("videoId"), self.items))  # type: ignore
+
+    @classmethod
+    def from_json(cls, json_file: Path) -> "Playlist":
+        with open(json_file) as f:
+            s = f.read()
+        return from_json(cls, s)
 
 
 if __name__ == "__main__":
