@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional
+from typing import NewType, Optional
 
 import cv2
 from config import DATA_DIR, get_logger
@@ -12,6 +12,27 @@ from serde.json import from_json, to_json
 
 logger = get_logger(__name__)
 
+# https://github.com/straussmaximilian/ocrmac/blob/2a7513d0ccb4069e4226d51eae32e5335506815d/ocrmac/ocrmac.py#L96-L101
+BBox = NewType("BBox", tuple[int, int, int, int])  # x, y, weight, height
+OCRResult = NewType(
+    "OCRResult", tuple[str, float, BBox]
+)  # result text, confidence, bounding box
+Frames = NewType("Frames", dict[Path, list[OCRResult]])
+
+
+def read_text_macos(frame: Path, lang: Optional[list] = None) -> list[OCRResult]:
+    if lang is None:
+        lang = ["ja"]
+
+    try:
+        res = ocrmac.OCR(str(frame), language_preference=lang).recognize()
+
+    except Exception as e:
+        logger.error("Error: OCR failed")
+        logger.error(e)
+        return []
+    return res
+
 
 @dataclass
 @serde
@@ -19,7 +40,9 @@ class Video:
     video_id: str
     video_path: Path = field(init=False)
     frames_dir: Path = field(init=False)
-    frames: list[Path] = field(default_factory=list)
+    # NOTE: ideally use `Frames` NewType but not currently supported by pyserde, see https://github.com/yukinarit/pyserde/issues/192
+    frames: dict = field(default_factory=dict)  # type Frames
+
     frame_rate: int = 100
 
     def __post_init__(self) -> None:
@@ -44,8 +67,8 @@ class Video:
     def get_json_file(video_id: str) -> Path:
         return DATA_DIR / "videos" / video_id / "video.json"
 
-    def to_frames(self, prefix: str = "frame-") -> tuple[list[Path], int]:
-        frames = []
+    def to_frames(self, prefix: str = "frame-") -> tuple[Frames, int]:
+        frames = Frames({})
 
         vid = cv2.VideoCapture(str(self.video_path))
         self.frames_dir.mkdir(parents=True, exist_ok=True)
@@ -63,7 +86,7 @@ class Video:
                 frame_path = self.frames_dir / f"{prefix}{index}.png"
 
                 cv2.imwrite(str(frame_path), frame)
-                frames.append(frame_path)
+                frames[frame_path] = []
 
             index += 1
 
@@ -74,6 +97,20 @@ class Video:
         self.len_frames = len(frames)
 
         return self.frames, self.len_frames
+
+    def get_frames_ocr(self) -> Frames:
+        frames = self.frames
+
+        for frame in frames.keys():
+            res = read_text_macos(frame)
+
+            if res:
+                logger.info(f"{frame} :{res}")
+                frames[frame] = res
+
+        self.frames = Frames(frames)
+
+        return self.frames
 
     def to_json(self) -> Path:
         json_file = self.get_json_file(self.video_id)
@@ -91,15 +128,10 @@ class Video:
 
         with open(json_file) as f:
             s = f.read()
-        return from_json(Video, s)
+        return from_json(cls, s)
 
 
-def read_text_macos(frame: Path, lang: Optional[list] = None) -> str:
-    if lang is None:
-        lang = ["ja"]
-    return ocrmac.OCR(str(frame), language_preference=lang).recognize()
-
-
+RUN_OCR = True
 if __name__ == "__main__":
     logger.info(Playlist.json_file)
 
@@ -122,3 +154,11 @@ if __name__ == "__main__":
             video.download_video()
 
         logger.info(f"{video.to_json()=}")
+
+        if not video.frames:
+            video.to_frames()
+
+        if RUN_OCR:
+            video.get_frames_ocr()
+
+        video.to_json()
