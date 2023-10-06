@@ -2,11 +2,11 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 from typing import ClassVar
-from serde import serde
-from serde.json import to_json, from_json
-import googleapiclient.discovery
 
+import googleapiclient.discovery
 from config import DATA_DIR, get_logger
+from serde import serde
+from serde.json import from_json, to_json
 
 logger = get_logger(__name__)
 
@@ -40,7 +40,7 @@ class Playlist:
         items = []
 
         while True:
-            logger.info(f"requesting playlist items...")
+            logger.info("requesting playlist items...")
             request = youtube.playlistItems().list(
                 part="snippet,contentDetails",
                 playlistId=self.playlist_id,
@@ -54,7 +54,7 @@ class Playlist:
             next_page_token = response.get("nextPageToken")
 
             if not next_page_token:
-                logger.info(f"no more items. finish requesting playlist items.")
+                logger.info("no more items. finish requesting playlist items.")
                 break
 
         self.items = items
@@ -77,7 +77,7 @@ if __name__ == "__main__":
         f.write(s)
 
     logger.info("read written json...")
-    with open(playlist.json_file, "r") as f:
+    with open(playlist.json_file) as f:
         s = f.read()
     p2 = from_json(Playlist, s)
 

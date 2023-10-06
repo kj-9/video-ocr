@@ -1,4 +1,5 @@
 from click.testing import CliRunner
+
 from video_ocr.cli import cli
 
 

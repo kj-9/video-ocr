@@ -1,15 +1,13 @@
-from pathlib import Path
-
-import cv2
-from pytube import YouTube
-from ocrmac import ocrmac
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from serde import serde
-from serde.json import to_json, from_json
-from playlist import Playlist
+import cv2
 from config import DATA_DIR, get_logger
+from ocrmac import ocrmac
+from playlist import Playlist
+from pytube import YouTube
+from serde import serde
+from serde.json import from_json, to_json
 
 logger = get_logger(__name__)
 
@@ -90,19 +88,21 @@ class Video:
     def from_json(cls, video_id: str) -> "Video":
         json_file = cls.get_json_file(video_id)
 
-        with open(json_file, "r") as f:
+        with open(json_file) as f:
             s = f.read()
         return from_json(Video, s)
 
 
-def read_text_macos(frame: Path, lang: list = ["ja"]) -> str:
+def read_text_macos(frame: Path, lang: list = None) -> str:
+    if lang is None:
+        lang = ["ja"]
     return ocrmac.OCR(str(frame), language_preference=lang).recognize()
 
 
 if __name__ == "__main__":
     logger.info(Playlist.json_file)
 
-    with open(Playlist.json_file, "r") as f:
+    with open(Playlist.json_file) as f:
         s = f.read()
     playlist = from_json(Playlist, s)
 
