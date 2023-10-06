@@ -31,6 +31,9 @@ video-ocr = "video_ocr.cli:cli"
 test = ["pytest"]
 dev = ["pre-commit"]
 
+[tool.setuptools]
+packages = ["video_ocr"]
+
 # see also: https://beta.ruff.rs/docs/configuration/#using-pyprojecttoml
 [tool.ruff]
 select = [
