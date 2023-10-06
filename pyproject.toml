@@ -1,0 +1,53 @@
+[project]
+name = "video-ocr"
+version = "0.1"
+description = ""
+readme = "README.md"
+authors = [{name = ""}]
+license = {text = "Apache-2.0"}
+requires-python = ">=3.8"
+classifiers = [
+    "License :: OSI Approved :: Apache Software License"
+]
+dependencies = [
+    "click",
+    "opencv-python",
+    "pytube",
+    "pyserde",
+    "ocrmac"
+
+]
+
+[project.urls]
+Homepage = "https://github.com/kj-9/video-ocr"
+Changelog = "https://github.com/kj-9/video-ocr/releases"
+Issues = "https://github.com/kj-9/video-ocr/issues"
+CI = "https://github.com/kj-9/video-ocr/actions"
+
+[project.entry-points.console_scripts]
+video-ocr = "video_ocr.cli:cli"
+
+[project.optional-dependencies]
+test = ["pytest"]
+dev = ["pre-commit"]
+
+# see also: https://beta.ruff.rs/docs/configuration/#using-pyprojecttoml
+[tool.ruff]
+select = [
+    "E", "F", "I",
+    #"D", for now
+    "W", "PL", "B", "UP"
+]
+
+# Never enforce `E501` (line length violations).
+ignore = [
+    "E501",
+    "PLR2004"# for now
+]
+
+# Ignore `E402` (import violations) in all `__init__.py` files, and in `path/to/file.py`.
+[tool.ruff.per-file-ignores]
+"*__init__.py" = ["F401"]
+
+[tool.ruff.pydocstyle]
+convention = "google"
