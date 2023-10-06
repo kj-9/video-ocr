@@ -1,13 +1,15 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from typing import NewType, Optional
 
 import cv2
 from config import DATA_DIR, get_logger
-from ocrmac import ocrmac
+from ocr import text_from_image
+
+# from ocrmac import text_from_image
 from playlist import Playlist
 from pytube import YouTube
-from serde import serde
+from serde import field, serde
 from serde.json import from_json, to_json
 
 logger = get_logger(__name__)
@@ -25,7 +27,7 @@ def read_text_macos(frame: Path, lang: Optional[list] = None) -> list[OCRResult]
         lang = ["ja"]
 
     try:
-        res = ocrmac.OCR(str(frame), language_preference=lang).recognize()
+        res = text_from_image(str(frame), language_preference=lang)
 
     except Exception as e:
         logger.error("Error: OCR failed")
@@ -34,14 +36,31 @@ def read_text_macos(frame: Path, lang: Optional[list] = None) -> list[OCRResult]
     return res
 
 
-@dataclass
+def frames_serializer(frames: Frames) -> dict[str, list]:
+    """pyserde does not support dict keys to be `Path`, so we need to serialize/deserialize manually"""
+
+    _frames = {str(k): v for k, v in frames.items()}
+    return _frames
+
+
+def frames_deserializer(_frames: dict[str, list]) -> Frames:
+    frames = {Path(k): v for k, v in _frames.items()}
+
+    return Frames(frames)
+
+
 @serde
+@dataclass
 class Video:
     video_id: str
     video_path: Path = field(init=False)
     frames_dir: Path = field(init=False)
     # NOTE: ideally use `Frames` NewType but not currently supported by pyserde, see https://github.com/yukinarit/pyserde/issues/192
-    frames: dict = field(default_factory=dict)  # type Frames
+    frames: dict = field(
+        default_factory=dict,
+        serializer=frames_serializer,
+        deserializer=frames_deserializer,
+    )  # type Frames
 
     frame_rate: int = 100
 
@@ -131,7 +150,7 @@ class Video:
         return from_json(cls, s)
 
 
-RUN_OCR = True
+RUN_OCR = False
 if __name__ == "__main__":
     logger.info(Playlist.json_file)
 
@@ -146,17 +165,17 @@ if __name__ == "__main__":
 
     logger.info(f"{len_video_ids=}")
 
-    for i, video_id in enumerate(video_ids):
+    for i, video_id in enumerate(video_ids[0:1]):
         logger.info(f"{(100*i) // len_video_ids}%, {video_id=}")
         video = Video(video_id)
 
         if not video.video_path.exists():
             video.download_video()
 
-        logger.info(f"{video.to_json()=}")
-
         if not video.frames:
             video.to_frames()
+
+        logger.info(f"{video.to_json()=}")
 
         if RUN_OCR:
             video.get_frames_ocr()
