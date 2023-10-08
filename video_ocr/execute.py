@@ -63,14 +63,14 @@ def execute_save_results(video_id, load=True):
     save_ocr_results(load_or_create_video(video_id, load=load))
 
 
-def run_on_thread_pool(exec_func, iterable, max_workers=4):
+def run_on_thread_pool(exec_func, *iterable, max_workers=4):
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        executor.map(exec_func, iterable)
+        executor.map(exec_func, *iterable)
 
 
-def run_on_process_pool(exec_func, iterable, max_workers=None):
+def run_on_process_pool(exec_func, *iterable, max_workers=None):
     with ProcessPoolExecutor(max_workers=max_workers) as executor:
-        executor.map(exec_func, iterable)
+        executor.map(exec_func, *iterable)
 
 
 def log_time(function):
