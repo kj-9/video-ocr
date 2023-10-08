@@ -4,9 +4,8 @@ from typing import NewType
 
 import cv2
 from config import DATA_DIR, get_logger
-from playlist import Playlist
 from pytube import YouTube
-from serde import SerdeError, field, serde
+from serde import field, serde
 from serde.json import from_json, to_json
 
 from video_ocr.ocr import OCRResult, detect_text
@@ -44,9 +43,9 @@ class Video:
 
         # validation
         if self.frames:
-            frame_paths = [frame.path for frame in self.frames]
+            frame_paths = [str(frame.path) for frame in self.frames]
 
-            if len(frame_paths) == len(set(frame_paths)):
+            if len(frame_paths) != len(set(frame_paths)):
                 raise ValueError("frame paths must be unique.")
 
     def download_video(self) -> None:
@@ -94,7 +93,7 @@ class Video:
 
         return self.frames, self.len_frames
 
-    def get_frames_ocr(self) -> Frames:
+    def get_frames_ocr(self) -> list[Frame]:
         frames = self.frames
 
         logger.info("start OCR on frames...")
@@ -127,39 +126,3 @@ class Video:
         with open(json_file) as f:
             s = f.read()
         return from_json(cls, s)
-
-
-RUN_OCR = True
-if __name__ == "__main__":
-    logger.info(Playlist.json_file)
-
-    with open(Playlist.json_file) as f:
-        s = f.read()
-    playlist = from_json(Playlist, s)
-
-    logger.info(len(playlist.items))
-
-    video_ids = playlist.to_video_ids()
-    len_video_ids = len(video_ids)
-
-    logger.info(f"{len_video_ids=}")
-
-    for i, video_id in enumerate(video_ids[1:2]):
-        logger.info(f"{(100*i) // len_video_ids}%, {video_id=}")
-
-        try:
-            video = Video.from_json(video_id)
-        except SerdeError:
-            video = Video(video_id)
-
-        if not video.video_path.exists():
-            video.download_video()
-
-        if not video.frames:
-            video.to_frames()
-
-        logger.info(f"{video.to_json()=}")
-
-        if RUN_OCR:  # and not any(video.frames.values()):
-            video.get_frames_ocr()
-            logger.info(f"{video.to_json()=}")
