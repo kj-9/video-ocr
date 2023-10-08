@@ -4,39 +4,44 @@ mainly copied from : https://github.com/RhetTbull/textinator/blob/3aae89d0eea18a
 also credits: https://github.com/straussmaximilian/ocrmac/blob/main/ocrmac/ocrmac.py
 """
 
+from dataclasses import dataclass
+
 import objc
-import Vision
-
-
-from typing import Optional, NewType
 import Quartz
-from Foundation import NSDictionary, NSLog, NSURL
+import Vision
+from Foundation import NSURL, NSDictionary, NSLog
+from serde import serde
 
-# https://github.com/straussmaximilian/ocrmac/blob/2a7513d0ccb4069e4226d51eae32e5335506815d/ocrmac/ocrmac.py#L96-L101
-BBox = NewType("BBox", tuple[int, int, int, int])  # x, y, weight, height
-OCRResult = NewType(
-    "OCRResult", tuple[str, float, BBox]
-)  # result text, confidence, bounding box
+
+@serde
+@dataclass(frozen=True)
+class OCRResult:
+    text: str
+    confidence: float
+    bbox: tuple[float, float, float, float]  # x, y, weight, height
+
 
 def detect_text(
-    img_path: str,
-    recognition_level: str="accurate",
-    orientation: Optional[int] = None,
-    languages: Optional[list[str]] = None,
+    image_path: str,
+    recognition_level: str = "accurate",
+    orientation: int | None = None,
+    languages: list[str] | None = None,
 ) -> list[OCRResult]:
     """process image with VNRecognizeTextRequest and return results
 
     This code originally developed for https://github.com/RhetTbull/osxphotos
 
     Args:
-        img_path: path to image to process
+        image_path: path to image to process
         recognition_level: "accurate" or "fast"
         orientation: orientation of image, 1-8, see https://developer.apple.com/documentation/imageio/kcgimagepropertyorientation
         languages: list of languages to recognize, e.g. ["en-US", "ja"]
 
     """
 
-    input_url = NSURL.fileURLWithPath_(img_path)
+    if languages is None:
+        languages = ["en-US"]
+    input_url = NSURL.fileURLWithPath_(image_path)
 
     """
     with pipes() as (out, err):
@@ -63,12 +68,11 @@ def detect_text(
             )
         else:
             raise ValueError("orientation must be between 1 and 8")
-        results = []
+        results: list[OCRResult] = []
         handler = make_request_handler(results)
         vision_request = (
             Vision.VNRecognizeTextRequest.alloc().initWithCompletionHandler_(handler)
         )
-        languages = languages or ["en-US"]
 
         vision_request.setRecognitionLanguages_(languages)
         vision_request.setUsesLanguageCorrection_(True)
@@ -101,7 +105,20 @@ def make_request_handler(results):
                 w, h = bbox.size.width, bbox.size.height
                 x, y = bbox.origin.x, bbox.origin.y
 
-                results.append((observation.text(), observation.confidence(), [x, y, w, h]))
+                results.append(
+                    OCRResult(
+                        text=observation.text(),
+                        confidence=observation.confidence(),
+                        bbox=[x, y, w, h],
+                    )
+                )
 
     return handler
 
+
+if __name__ == "__main__":
+    res = OCRResult(text="test", confidence=0.5, bbox=(0.1, 0.2, 0.3, 0.4))
+
+    from serde.json import to_json
+
+    print(to_json(res))

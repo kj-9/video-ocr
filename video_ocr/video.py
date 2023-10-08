@@ -15,17 +15,11 @@ logger = get_logger(__name__)
 Frames = NewType("Frames", dict[Path, list[OCRResult]])
 
 
-def frames_serializer(frames: Frames) -> dict[str, list]:
-    """pyserde does not support dict keys to be `Path`, so we need to serialize/deserialize manually"""
-
-    _frames = {str(k): v for k, v in frames.items()}
-    return _frames
-
-
-def frames_deserializer(_frames: dict[str, list]) -> Frames:
-    frames = {Path(k): v for k, v in _frames.items()}
-
-    return Frames(frames)
+@serde
+@dataclass
+class Frame:
+    path: Path
+    results: list[OCRResult]
 
 
 @serde
@@ -35,11 +29,7 @@ class Video:
     video_path: Path = field(init=False)
     frames_dir: Path = field(init=False)
     # NOTE: ideally use `Frames` NewType but not currently supported by pyserde, see https://github.com/yukinarit/pyserde/issues/192
-    frames: dict = field(
-        default_factory=dict,
-        serializer=frames_serializer,
-        deserializer=frames_deserializer,
-    )  # type Frames
+    frames: list[Frame] = field(default_factory=list)  # type Frames
 
     frame_rate: int = 100
 
@@ -51,6 +41,13 @@ class Video:
         self.frames_dir = data_dir / "frame"
 
         self.frames_dir.mkdir(parents=True, exist_ok=True)
+
+        # validation
+        if self.frames:
+            frame_paths = [frame.path for frame in self.frames]
+
+            if len(frame_paths) == len(set(frame_paths)):
+                raise ValueError("frame paths must be unique.")
 
     def download_video(self) -> None:
         yt = YouTube(f"https://www.youtube.com/watch?v={self.video_id}")
@@ -65,8 +62,8 @@ class Video:
     def get_json_file(video_id: str) -> Path:
         return DATA_DIR / "videos" / video_id / "video.json"
 
-    def to_frames(self, prefix: str = "frame-") -> tuple[Frames, int]:
-        frames = Frames({})
+    def to_frames(self, prefix: str = "frame-") -> tuple[list[Frame], int]:
+        frames = []
 
         vid = cv2.VideoCapture(str(self.video_path))
         self.frames_dir.mkdir(parents=True, exist_ok=True)
@@ -84,7 +81,7 @@ class Video:
                 frame_path = self.frames_dir / f"{prefix}{index}.png"
 
                 cv2.imwrite(str(frame_path), frame)
-                frames[frame_path] = []
+                frames.append(Frame(path=frame_path, results=[]))
 
             index += 1
 
@@ -101,14 +98,15 @@ class Video:
         frames = self.frames
 
         logger.info("start OCR on frames...")
-        for frame in frames.keys():
-            res = detect_text(str(frame), languages=["ja"])
+        for i, frame in enumerate(frames):
+            results = detect_text(str(frame.path), languages=["ja"])
 
-            if res:
-                frames[frame] = res
+            if results:
+                frame.results = results
+                frames[i] = frame
 
         logger.info("completed OCR on frames.")
-        self.frames = Frames(frames)
+        self.frames = frames
 
         return self.frames
 
@@ -146,7 +144,7 @@ if __name__ == "__main__":
 
     logger.info(f"{len_video_ids=}")
 
-    for i, video_id in enumerate(video_ids):
+    for i, video_id in enumerate(video_ids[1:2]):
         logger.info(f"{(100*i) // len_video_ids}%, {video_id=}")
 
         try:
