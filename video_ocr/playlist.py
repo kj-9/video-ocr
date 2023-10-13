@@ -1,12 +1,13 @@
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import ClassVar
 
 import googleapiclient.discovery
-from config import DATA_DIR, get_logger
 from serde import serde
 from serde.json import from_json, to_json
+
+import video_ocr as vo
+from video_ocr.config import get_logger
 
 logger = get_logger(__name__)
 
@@ -16,7 +17,10 @@ logger = get_logger(__name__)
 class Playlist:
     items: list[dict] = field(default_factory=list)
     playlist_id: str = "UUcWWwmgV5dLmqUJCtAZqHfw"  # 中島浩二チャンネル
-    json_file: ClassVar[Path] = DATA_DIR / "playlist.json"
+
+    @classmethod
+    def json_file(self) -> Path:
+        return vo.config.DATA_DIR / "playlist.json"
 
     def __get_api(self) -> googleapiclient.discovery.Resource:
         DEVELOPER_KEY = os.environ.get("YOUTUBE_API_KEY")
@@ -75,15 +79,16 @@ if __name__ == "__main__":
     logger.info("fetching playlist items...")
     playlist.get_playlist()
 
-    playlist.json_file.parent.mkdir(parents=True, exist_ok=True)
+    json_file = playlist.json_file()
+    json_file.parent.mkdir(parents=True, exist_ok=True)
     s = to_json(playlist)
 
     logger.info("write playlist as json...")
-    with open(playlist.json_file, "w") as f:
+    with open(json_file, "w") as f:
         f.write(s)
 
     logger.info("read written json...")
-    with open(playlist.json_file) as f:
+    with open(json_file) as f:
         s = f.read()
     p2 = from_json(Playlist, s)
 

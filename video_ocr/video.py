@@ -3,11 +3,12 @@ from pathlib import Path
 from typing import NewType
 
 import cv2
-from config import DATA_DIR, get_logger
 from pytube import YouTube
 from serde import field, serde
 from serde.json import from_json, to_json
 
+import video_ocr as vo
+from video_ocr.config import get_logger
 from video_ocr.ocr import OCRResult, detect_text
 
 logger = get_logger(__name__)
@@ -33,7 +34,7 @@ class Video:
     frame_rate: int = 100
 
     def __post_init__(self) -> None:
-        data_dir = DATA_DIR / "videos" / self.video_id
+        data_dir = vo.config.DATA_DIR / "videos" / self.video_id
         data_dir.mkdir(parents=True, exist_ok=True)
 
         self.video_path = data_dir / "video.mp4"
@@ -59,7 +60,7 @@ class Video:
 
     @staticmethod
     def get_json_file(video_id: str) -> Path:
-        return DATA_DIR / "videos" / video_id / "video.json"
+        return vo.config.DATA_DIR / "videos" / video_id / "video.json"
 
     def to_frames(self, prefix: str = "frame-") -> tuple[list[Frame], int]:
         frames = []
