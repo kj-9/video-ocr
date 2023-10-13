@@ -19,7 +19,7 @@ class Playlist:
     playlist_id: str = "UUcWWwmgV5dLmqUJCtAZqHfw"  # 中島浩二チャンネル
 
     @classmethod
-    def json_file(self) -> Path:
+    def json_file(cls) -> Path:
         return vo.config.DATA_DIR / "playlist.json"
 
     def __get_api(self) -> googleapiclient.discovery.Resource:
