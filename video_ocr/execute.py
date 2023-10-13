@@ -79,7 +79,7 @@ def run_on_thread_pool(exec_func, *iterable, max_workers=4):
 
 def run_on_process_pool(exec_func, *iterable, max_workers=None):
     with ProcessPoolExecutor(max_workers=max_workers) as executor:
-        return executor.map(exec_func, *iterable)
+        executor.map(exec_func, *iterable)
 
 
 def log_time(function):
@@ -99,11 +99,9 @@ def run_ocr(video_ids: list[str], load=False) -> None:
     logger.info(f"finish save frames: {end - start}")
 
     start = timeit.default_timer()
-    videos = run_on_process_pool(get_func_save_results(load), video_ids)
+    run_on_process_pool(get_func_save_results(load), video_ids)
     end = timeit.default_timer()
     logger.info(f"finish save ocr results: {end - start}")
-
-    return videos
 
 
 def check_performance(
