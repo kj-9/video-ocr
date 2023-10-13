@@ -11,7 +11,7 @@ from video_ocr.video import Video
 logger = get_logger(__name__)
 
 
-def load_or_create_video(video_id: str, load=False) -> Video:
+def _load_or_create_video(video_id: str, load=False) -> Video:
     if load:
         try:
             video = Video.from_json(video_id)
@@ -32,18 +32,27 @@ def load_or_create_video(video_id: str, load=False) -> Video:
         video = Video(video_id)
 
     if not video.video_path.exists():
+        logger.info(f"{video.video_path=} does not exist, downloading video...")
         video.download_video()
 
     return video
 
 
-def save_frames(video):
+def _save_frames(video):
     if not video.frames:
         video.to_frames()
         logger.info(f"{video.to_json()=}")
 
 
-def save_ocr_results(video):
+def get_func_save_frames(load=True):
+    def closure(video_id):
+        video = _load_or_create_video(video_id, load=load)
+        _save_frames(video)
+
+    return closure
+
+
+def _save_ocr_results(video):
     results = [frame.results for frame in video.frames]
 
     if any(results):
@@ -52,25 +61,25 @@ def save_ocr_results(video):
 
     video.get_frames_ocr()
     logger.info(f"{video.to_json()=}")
+    return video
 
 
-# excecution time comparison
-def execute_save_frames(video_id, load=True):
-    save_frames(load_or_create_video(video_id, load=load))
+def get_func_save_results(load=True):
+    def closure(video_id):
+        video = _load_or_create_video(video_id, load=load)
+        return _save_ocr_results(video)
 
-
-def execute_save_results(video_id, load=True):
-    save_ocr_results(load_or_create_video(video_id, load=load))
+    return closure
 
 
 def run_on_thread_pool(exec_func, *iterable, max_workers=4):
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        executor.map(exec_func, *iterable)
+        return executor.map(exec_func, *iterable)
 
 
 def run_on_process_pool(exec_func, *iterable, max_workers=None):
     with ProcessPoolExecutor(max_workers=max_workers) as executor:
-        executor.map(exec_func, *iterable)
+        return executor.map(exec_func, *iterable)
 
 
 def log_time(function):
@@ -81,6 +90,20 @@ def log_time(function):
         return function_return
 
     return wrap
+
+
+def run_ocr(video_ids: list[str], load=False) -> None:
+    start = timeit.default_timer()
+    run_on_thread_pool(get_func_save_frames(load), video_ids)
+    end = timeit.default_timer()
+    logger.info(f"finish save frames: {end - start}")
+
+    start = timeit.default_timer()
+    videos = run_on_process_pool(get_func_save_results(load), video_ids)
+    end = timeit.default_timer()
+    logger.info(f"finish save ocr results: {end - start}")
+
+    return videos
 
 
 def check_performance(
@@ -147,12 +170,12 @@ if __name__ == "__main__":
     logger.info(f"{len_video_ids=}")
 
     start = timeit.default_timer()
-    run_on_thread_pool(execute_save_frames, video_ids)
+    run_on_thread_pool(get_func_save_frames(), video_ids)
     end = timeit.default_timer()
     logger.info(f"finish save frames: {end - start}")
 
     start = timeit.default_timer()
-    run_on_process_pool(execute_save_results, video_ids)
+    run_on_process_pool(get_func_save_results(), video_ids)
     end = timeit.default_timer()
     logger.info(f"finish save ocr results: {end - start}")
 
@@ -160,5 +183,5 @@ if __name__ == "__main__":
         # sampling
         sample_video_ids = video_ids[:10]
         # choose task
-        logger.info(f"{check_performance(sample_video_ids, execute_save_frames)=}")
-        logger.info(f"{check_performance(sample_video_ids, execute_save_results)=}")
+        logger.info(f"{check_performance(sample_video_ids, get_func_save_frames())=}")
+        logger.info(f"{check_performance(sample_video_ids, get_func_save_frames())=}")
