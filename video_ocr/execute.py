@@ -158,7 +158,7 @@ def check_performance(
 
 CHECK_PERFORMANCE = False
 if __name__ == "__main__":
-    playlist = Playlist.from_json(Playlist.json_file())
+    playlist = Playlist.from_json()
 
     logger.info(len(playlist.items))
 

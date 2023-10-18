@@ -18,8 +18,8 @@ class Playlist:
     items: list[dict] = field(default_factory=list)
     playlist_id: str = "UUcWWwmgV5dLmqUJCtAZqHfw"  # 中島浩二チャンネル
 
-    @classmethod
-    def json_file(cls) -> Path:
+    @staticmethod
+    def get_json_file() -> Path:
         return vo.config.DATA_DIR / "playlist.json"
 
     def __get_api(self) -> googleapiclient.discovery.Resource:
@@ -67,10 +67,24 @@ class Playlist:
     def to_video_ids(self) -> list[str]:
         return list(map(lambda x: x.get("contentDetails").get("videoId"), self.items))  # type: ignore
 
+    def to_json(self) -> Path:
+        json_file = self.get_json_file()
+
+        json_file.parent.mkdir(parents=True, exist_ok=True)
+        s = to_json(playlist, indent=4)
+
+        with open(json_file, "w") as f:
+            f.write(s)
+
+        return json_file
+
     @classmethod
-    def from_json(cls, json_file: Path) -> "Playlist":
+    def from_json(cls) -> "Playlist":
+        json_file = cls.get_json_file()
+
         with open(json_file) as f:
             s = f.read()
+
         return from_json(cls, s)
 
 
@@ -79,18 +93,10 @@ if __name__ == "__main__":
     logger.info("fetching playlist items...")
     playlist.get_playlist()
 
-    json_file = playlist.json_file()
-    json_file.parent.mkdir(parents=True, exist_ok=True)
-    s = to_json(playlist)
-
     logger.info("write playlist as json...")
-    with open(json_file, "w") as f:
-        f.write(s)
+    json_file = playlist.to_json()
 
-    logger.info("read written json...")
-    with open(json_file) as f:
-        s = f.read()
-    p2 = from_json(Playlist, s)
+    p2 = Playlist.from_json()
 
     logger.info("compare read playlist")
     print(playlist == p2)
