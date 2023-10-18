@@ -114,7 +114,7 @@ class Video:
         json_file = self.get_json_file(self.video_id)
         json_file.parent.mkdir(parents=True, exist_ok=True)
 
-        s = to_json(self)
+        s = to_json(self, indent=4)
         with open(json_file, "w") as f:
             f.write(s)
 
