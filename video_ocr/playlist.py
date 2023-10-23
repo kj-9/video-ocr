@@ -64,6 +64,11 @@ class Playlist:
         self.items = items
         return items
 
+    def first_video_id_item(self, video_id):
+        for item in self.items:
+            if item.get("contentDetails").get("videoId") == video_id:
+                return item
+
     def to_video_ids(self) -> list[str]:
         return list(map(lambda x: x.get("contentDetails").get("videoId"), self.items))  # type: ignore
 
