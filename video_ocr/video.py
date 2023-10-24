@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 from pathlib import Path
-from typing import NewType
 
 import cv2
 from pytube import YouTube
@@ -12,7 +11,6 @@ from video_ocr.config import get_logger
 from video_ocr.ocr import OCRResult, detect_text
 
 logger = get_logger(__name__)
-Frames = NewType("Frames", dict[Path, list[OCRResult]])
 
 
 @serde
@@ -26,9 +24,10 @@ class Frame:
 @dataclass
 class Video:
     video_id: str
-    video_path: Path = field(init=False)
-    frames_dir: Path = field(init=False)
-    # NOTE: ideally use `Frames` NewType but not currently supported by pyserde, see https://github.com/yukinarit/pyserde/issues/192
+    video_path: Path = field(init=False, skip=True)
+    frames_dir: Path = field(init=False, skip=True)
+    # NOTE: ideally use NewType: `rames = NewType("Frames", dict[Path, list[OCRResult]])`
+    # but not currently supported by pyserde, see https://github.com/yukinarit/pyserde/issues/192
     frames: list[Frame] = field(default_factory=list)  # type Frames
 
     frame_rate: int = 100
