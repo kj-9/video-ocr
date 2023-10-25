@@ -16,7 +16,7 @@ logger = get_logger(__name__)
 @serde
 @dataclass
 class Frame:
-    path: Path
+    file_name: str
     results: list[OCRResult]
 
 
@@ -24,13 +24,12 @@ class Frame:
 @dataclass
 class Video:
     video_id: str
+    frame_rate: int = 100
+    frames: list[Frame] = field(default_factory=list)
+
+    # internals
     video_path: Path = field(init=False, skip=True)
     frames_dir: Path = field(init=False, skip=True)
-    # NOTE: ideally use NewType: `rames = NewType("Frames", dict[Path, list[OCRResult]])`
-    # but not currently supported by pyserde, see https://github.com/yukinarit/pyserde/issues/192
-    frames: list[Frame] = field(default_factory=list)  # type Frames
-
-    frame_rate: int = 100
 
     def __post_init__(self) -> None:
         data_dir = vo.config.DATA_DIR / "videos" / self.video_id
@@ -43,7 +42,7 @@ class Video:
 
         # validation
         if self.frames:
-            frame_paths = [str(frame.path) for frame in self.frames]
+            frame_paths = self.frame_paths
 
             if len(frame_paths) != len(set(frame_paths)):
                 raise ValueError("frame paths must be unique.")
@@ -61,11 +60,14 @@ class Video:
     def get_json_file(video_id: str) -> Path:
         return vo.config.DATA_DIR / "videos" / video_id / "video.json"
 
+    @property
+    def frame_paths(self) -> list[Path]:
+        return [self.frames_dir / frame.file_name for frame in self.frames]
+
     def to_frames(self, prefix: str = "frame-") -> tuple[list[Frame], int]:
         frames = []
 
         vid = cv2.VideoCapture(str(self.video_path))
-        self.frames_dir.mkdir(parents=True, exist_ok=True)
         index = 0
 
         logger.info("start converting image to frames...")
@@ -77,10 +79,11 @@ class Video:
                 break
 
             if index % self.frame_rate == 0:
-                frame_path = self.frames_dir / f"{prefix}{index}.png"
+                file_name = f"{prefix}{index}.png"
+                frame_path = self.frames_dir / file_name
 
                 cv2.imwrite(str(frame_path), frame)
-                frames.append(Frame(path=frame_path, results=[]))
+                frames.append(Frame(file_name=file_name, results=[]))
 
             index += 1
 
@@ -97,12 +100,11 @@ class Video:
         frames = self.frames
 
         logger.info("start OCR on frames...")
-        for i, frame in enumerate(frames):
-            results = detect_text(str(frame.path), languages=["ja"])
+        for i, frame_path in enumerate(self.frame_paths):
+            results = detect_text(str(frame_path), languages=["ja"])
 
             if results:
-                frame.results = results
-                frames[i] = frame
+                frames[i].results = results
 
         logger.info("completed OCR on frames.")
         self.frames = frames
