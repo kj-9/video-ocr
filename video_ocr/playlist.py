@@ -15,8 +15,8 @@ logger = get_logger(__name__)
 @dataclass
 @serde
 class Playlist:
+    playlist_id: str
     items: list[dict] = field(default_factory=list)
-    playlist_id: str = "UUcWWwmgV5dLmqUJCtAZqHfw"  # 中島浩二チャンネル
 
     @staticmethod
     def get_json_file() -> Path:
@@ -76,7 +76,7 @@ class Playlist:
         json_file = self.get_json_file()
 
         json_file.parent.mkdir(parents=True, exist_ok=True)
-        s = to_json(playlist, indent=4)
+        s = to_json(self, indent=4)
 
         with open(json_file, "w") as f:
             f.write(s)
