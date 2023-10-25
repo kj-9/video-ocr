@@ -114,11 +114,3 @@ def make_request_handler(results):
                 )
 
     return handler
-
-
-if __name__ == "__main__":
-    res = OCRResult(text="test", confidence=0.5, bbox=(0.1, 0.2, 0.3, 0.4))
-
-    from serde.json import to_json
-
-    print(to_json(res))
