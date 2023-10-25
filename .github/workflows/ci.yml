@@ -24,7 +24,7 @@ jobs:
           pip install '.[test,dev]'
       - name: Run tests
         run: |
-          pytest
+          make test
   lint:
     runs-on: ubuntu-latest # lint only requires pre-commit, so not requires macOS
     steps:
