@@ -35,7 +35,7 @@ python -m pip install -e .
 # install
 ```
 # https://stackoverflow.com/questions/76379293/how-can-i-fix-the-error-in-pymupdf-when-installing-paddleocr-with-pip
-pip install "paddleocr>=2.0.1" --upgrade PyMuPDF==1.21.1 
+pip install "paddleocr>=2.0.1" --upgrade PyMuPDF==1.21.1
 ```
 brew install mupdf swig freetype
 pip install https://github.com/pymupdf/PyMuPDF/archive/master.tar.gz
