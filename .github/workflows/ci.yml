@@ -21,7 +21,7 @@ jobs:
           cache-dependency-path: pyproject.toml
       - name: Install dependencies
         run: |
-          pip install '.[test]'
+          pip install '.[test,dev]'
       - name: Run tests
         run: |
           pytest
@@ -36,6 +36,6 @@ jobs:
           cache-dependency-path: pyproject.toml
       - name: Install dependencies
         run: |
-          pip install '.[dev]'
+          pip install '.[test,dev]'
       - name: Run pre-commit
         run: pre-commit run --all-files --show-diff-on-failure
