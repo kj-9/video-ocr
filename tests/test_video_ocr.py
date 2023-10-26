@@ -4,7 +4,10 @@ from click.testing import CliRunner
 
 from video_ocr import Video, config
 from video_ocr.cli import cli
-from video_ocr.execute import func_run_ocr_if_not_exists, func_to_frames_if_not_exists
+from video_ocr.execute import (
+    func_to_frames_if_not_exists,
+    run_ocr_if_not_exists,
+)
 
 
 def test_version():
@@ -26,7 +29,7 @@ def test_run_ocr_sync():
         config.DATA_DIR = Path(td)
 
         func_to_frames_if_not_exists(load=False)(video_ids[0])
-        func_run_ocr_if_not_exists()(video_ids[0])
+        run_ocr_if_not_exists(video_ids[0])
 
         video = Video.from_json(video_ids[0])
 

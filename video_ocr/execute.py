@@ -44,6 +44,7 @@ def _to_frames_if_not_exists(video: Video) -> None:
         logger.info(f"{video.to_json()=}")
 
 
+# return closure for thread pool. `to_frames` is io bound, so we use thread pool
 def func_to_frames_if_not_exists(load=True) -> t.Callable:
     def closure(video_id: str):
         video = _load_or_create_video(video_id, load=load)
@@ -52,27 +53,23 @@ def func_to_frames_if_not_exists(load=True) -> t.Callable:
     return closure
 
 
-def _run_ocr_if_not_exists(video: Video) -> None:
+# function for process pool. running ocr is memory bound, so we use process pool
+# notice that we cant use closure here, since closure cannot be pickled meaning it cannot be passed to process pool
+def run_ocr_if_not_exists(video_id: str) -> Video:
+    video = _load_or_create_video(video_id, load=True)  # must load video with frames
+
     results = [frame.results for frame in video.frames]
 
     if any(results):
         logger.info(f"{video.video_id=} has already saved results, stop ocr.")
         # already saved results
-        return
+        return video
 
     logger.info(f"{video.video_id=} has no saved results, run ocr.")
     video.get_frames_ocr()
     logger.info(f"{video.to_json()=}")
 
-
-def func_run_ocr_if_not_exists() -> t.Callable:
-    def closure(video_id: str):
-        video = _load_or_create_video(
-            video_id, load=True
-        )  # must load video with frames
-        _run_ocr_if_not_exists(video)
-
-    return closure
+    return video
 
 
 def run_on_thread_pool(exec_func, *iterable, max_workers=4):
@@ -101,9 +98,7 @@ def run_ocr_multi_process(video_ids: list[str], load=False) -> None:
     logger.info("finish saving frames.")
 
     logger.info("start saving ocr results.")
-    # must load=True, since we need to load generated frames
-    # or there will be no frames to ocr
-    run_on_process_pool(func_run_ocr_if_not_exists(), video_ids)
+    run_on_process_pool(run_ocr_if_not_exists, video_ids)
     logger.info("finish saving ocr results.")
 
 
