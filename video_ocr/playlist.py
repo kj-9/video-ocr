@@ -91,17 +91,3 @@ class Playlist:
             s = f.read()
 
         return from_json(cls, s)
-
-
-if __name__ == "__main__":
-    playlist = Playlist()
-    logger.info("fetching playlist items...")
-    playlist.get_playlist()
-
-    logger.info("write playlist as json...")
-    json_file = playlist.to_json()
-
-    p2 = Playlist.from_json()
-
-    logger.info("compare read playlist")
-    print(playlist == p2)
