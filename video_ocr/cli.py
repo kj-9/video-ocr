@@ -45,15 +45,26 @@ def keys_set(value):
 
 @cli.command(name="playlist")
 @click.argument("playlist_id", required=True, type=str)
-@click.argument(
-    "output",
-    # required=True,
+@click.option(
+    "-o",
+    "--output",
     type=click.Path(file_okay=True, writable=True, dir_okay=False, allow_dash=True),
 )
 def write_playlist(playlist_id, output):
-    "Command description goes here"
-    click.echo("Here is some output")
-    playlist = Playlist(playlist_id)
+    """Write a playlist to a json file"""
+    if not output:
+        output_path = Path(f"{playlist_id}.json")
 
+        counter = 1
+        while output_path.exists():
+            # update suffix with -{counter}.json
+            output_path = Path(f"{playlist_id}.{counter}.json")
+            counter += 1
+
+    else:
+        output_path = Path(output)
+
+    playlist = Playlist(playlist_id)
     playlist.get_playlist()
-    playlist.to_json(Path(output))
+
+    playlist.to_json(output_path)
