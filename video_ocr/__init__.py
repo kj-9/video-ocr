@@ -7,7 +7,7 @@ def get_key(explicit_key: str | None, env_var: str | None = None) -> str | None:
     """
     Return an API key based on a hierarchy of potential sources.
 
-    :param provided_key: A key provided by the user. This may be the key, or an alias of a key in keys.json.
+    :param explicit_key: A key provided by the user. This is an alias of a key in .video-ocr.json
     :param env_var: Name of the environment variable to check for the key.
     """
     stored_keys = load_keys()

@@ -22,7 +22,7 @@ def key():
 
 @key.command(name="path")
 def key_path_command():
-    "Output the path to the keys.json file"
+    "Output the path to the .video-ocr.json file"
     click.echo(key_path())
 
 
@@ -30,7 +30,7 @@ def key_path_command():
 @click.argument("value", required=True, type=str)
 def keys_set(value):
     """
-    Save a key in the keys.json file
+    Save a key in the .video-ocr.json file
     """
     default = {"// Note": "This file stores secret API credentials. Do not share!"}
     path = key_path()
