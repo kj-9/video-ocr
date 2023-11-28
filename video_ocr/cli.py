@@ -3,8 +3,10 @@ from pathlib import Path
 
 import click
 
+import video_ocr as vo
 from video_ocr import key_path
 from video_ocr.playlist import Playlist
+from video_ocr.video import Video
 
 
 @click.group()
@@ -68,3 +70,21 @@ def write_playlist(playlist_id, output):
     playlist.get_playlist()
 
     playlist.to_json(output_path)
+
+
+@cli.command(name="video")
+@click.argument("video_id", required=True, type=str)
+@click.option(
+    "--output-dir",
+    "-od",
+    default=".",
+    type=click.Path(file_okay=False, writable=True),
+)
+def write_video(video_id, output_dir):
+    """Write a video to a json file"""
+    vo.config.DATA_DIR = Path(output_dir)
+    video = Video(video_id)
+    video.download_video()
+    video.to_frames()
+    video.get_frames_ocr()
+    video.to_json()
