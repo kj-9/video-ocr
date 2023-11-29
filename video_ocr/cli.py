@@ -80,10 +80,17 @@ def write_playlist(playlist_id, output):
     default=".",
     type=click.Path(file_okay=False, writable=True),
 )
-def write_video(video_id, output_dir):
+@click.option(
+    "--frame-rate",
+    "-fr",
+    default=100,
+    type=int,
+    help="Number of frames per second to extract from the video",
+)
+def write_video(video_id, output_dir, frame_rate):
     """Write a video to a json file"""
     vo.config.DATA_DIR = Path(output_dir)
-    video = Video(video_id)
+    video = Video(video_id, frame_rate=frame_rate)
     video.download_video()
     video.to_frames()
     video.get_frames_ocr()
