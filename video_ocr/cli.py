@@ -72,7 +72,12 @@ def write_playlist(playlist_id, output):
     playlist.to_json(output_path)
 
 
-@cli.command(name="video")
+@cli.group()
+def video():
+    "Manage videos"
+
+
+@video.command(name="run")
 @click.argument("video_id", required=True, type=str)
 @click.option(
     "--output-dir",
@@ -87,11 +92,28 @@ def write_playlist(playlist_id, output):
     type=int,
     help="Number of frames per second to extract from the video",
 )
-def write_video(video_id, output_dir, frame_rate):
+@click.option(
+    "--resolution",
+    "--res",
+    default="worst",
+    type=click.Choice(["worst", "best"]),
+    help="Resolution of the video to download",
+)
+def write_video(video_id, output_dir, frame_rate, resolution):
     """Write a video to a json file"""
     vo.config.DATA_DIR = Path(output_dir)
     video = Video(video_id, frame_rate=frame_rate)
-    video.download_video()
+    video.download_video(resolution=resolution)
     video.to_frames()
     video.get_frames_ocr()
     video.to_json()
+
+
+@video.command(name="resolutions")
+@click.argument("video_id", required=True, type=str)
+def get_resolutions(video_id):
+    """Get resolutions for a video"""
+    video = Video(video_id)
+    resolutions = video.get_resolutions()
+    for resolution in resolutions:
+        click.echo(resolution)

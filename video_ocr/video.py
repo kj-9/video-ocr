@@ -47,11 +47,22 @@ class Video:
             if len(frame_paths) != len(set(frame_paths)):
                 raise ValueError("frame paths must be unique.")
 
-    def download_video(self) -> None:
+    def get_resolutions(self) -> list:
+        yt = YouTube(f"https://www.youtube.com/watch?v={self.video_id}")
+        streams = yt.streams.filter(only_video=True)
+        return list(streams)
+
+    def download_video(self, resolution="worst") -> None:
         yt = YouTube(f"https://www.youtube.com/watch?v={self.video_id}")
         logger.info(f"downloading video: {yt.title}")
 
-        stream = yt.streams.filter(only_video=True).order_by("resolution").first()
+        streams = yt.streams.filter(only_video=True)
+
+        if resolution == "worst":
+            stream = streams.order_by("resolution").first()
+        elif resolution == "best":
+            stream = streams.order_by("resolution").last()
+
         stream.download(
             output_path=self.video_path.parent, filename=self.video_path.name
         )
