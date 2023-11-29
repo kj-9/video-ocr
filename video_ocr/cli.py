@@ -96,8 +96,8 @@ def video():
     "--resolution",
     "--res",
     default="worst",
-    type=click.Choice(["worst", "best"]),
-    help="Resolution of the video to download",
+    type=str,
+    help="Resolution of the video to download. worst/best or a itag. Use `video-ocr video resolutions` to get a list of itags",
 )
 def write_video(video_id, output_dir, frame_rate, resolution):
     """Write a video to a json file"""

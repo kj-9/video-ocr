@@ -62,6 +62,9 @@ class Video:
             stream = streams.order_by("resolution").first()
         elif resolution == "best":
             stream = streams.order_by("resolution").last()
+        else:
+            # resolution should be an itag
+            stream = yt.streams.get_by_itag(resolution)
 
         stream.download(
             output_path=self.video_path.parent, filename=self.video_path.name
