@@ -1,6 +1,6 @@
+import typing as t
 from dataclasses import dataclass
 from pathlib import Path
-from typing import ClassVar
 
 import cv2
 from pytube import YouTube
@@ -17,19 +17,19 @@ logger = get_logger(__name__)
 @dataclass
 class Frame:
     frame_file: Path
-    results: list[OCRResult]
+    results: t.List[OCRResult]
 
 
 # @serde
 @dataclass
 class Video:
     output_file: Path = field(default=None, skip=True)  # where to de/serialize
-    video_file: Path | None = None
-    frames_dir: Path | None = None
+    video_file: t.Optional[Path] = None
+    frames_dir: t.Optional[Path] = None
     frame_rate: int = 100
-    frames: list[Frame] = field(default_factory=list)
+    frames: t.List[Frame] = field(default_factory=list)
 
-    frame_prefix: ClassVar[str] = "frame-"  # prefix for frame files
+    frame_prefix: t.ClassVar[str] = "frame-"  # prefix for frame files
 
     @classmethod
     def get_resolutions(cls, video_id: str) -> list:
@@ -90,7 +90,7 @@ class Video:
         vid.release()
         cv2.destroyAllWindows()
 
-    def run_ocr(self, lang="ja") -> list[Frame]:
+    def run_ocr(self, lang="ja") -> t.List[Frame]:
         if not self.frames_dir:
             raise ValueError("frames_dir is not set. needed to run ocr.")
 

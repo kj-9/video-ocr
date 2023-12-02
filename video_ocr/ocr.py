@@ -4,6 +4,7 @@ mainly copied from : https://github.com/RhetTbull/textinator/blob/3aae89d0eea18a
 also credits: https://github.com/straussmaximilian/ocrmac/blob/main/ocrmac/ocrmac.py
 """
 
+import typing as t
 from dataclasses import dataclass
 
 import objc
@@ -18,15 +19,15 @@ from serde import serde
 class OCRResult:
     text: str
     confidence: float
-    bbox: tuple[float, float, float, float]  # x, y, weight, height
+    bbox: t.Tuple[float, float, float, float]  # x, y, weight, height
 
 
 def detect_text(
     image_path: str,
     recognition_level: str = "accurate",
-    orientation: int | None = None,
-    languages: list[str] | None = None,
-) -> list[OCRResult]:
+    orientation: t.Optional[int] = None,
+    languages: t.Optional[t.List[str]] = None,
+) -> t.List[OCRResult]:
     """process image with VNRecognizeTextRequest and return results
 
     This code originally developed for https://github.com/RhetTbull/osxphotos
@@ -68,7 +69,7 @@ def detect_text(
             )
         else:
             raise ValueError("orientation must be between 1 and 8")
-        results: list[OCRResult] = []
+        results: t.List[OCRResult] = []
         handler = make_request_handler(results)
         vision_request = (
             Vision.VNRecognizeTextRequest.alloc().initWithCompletionHandler_(handler)

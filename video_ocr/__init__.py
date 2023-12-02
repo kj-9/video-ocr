@@ -1,9 +1,12 @@
 import json
 import os
+import typing as t
 from pathlib import Path
 
 
-def get_key(explicit_key: str | None, env_var: str | None = None) -> str | None:
+def get_key(
+    explicit_key: t.Optional[str], env_var: t.Optional[str] = None
+) -> t.Optional[str]:
     """
     Return an API key based on a hierarchy of potential sources.
 

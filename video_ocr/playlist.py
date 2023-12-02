@@ -1,3 +1,4 @@
+import typing as t
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -17,7 +18,7 @@ logger = get_logger(__name__)
 @serde
 class Playlist:
     playlist_id: str
-    items: list[dict] = field(default_factory=list)
+    items: t.List[dict] = field(default_factory=list)
 
     @staticmethod
     def get_json_file() -> Path:
@@ -38,7 +39,7 @@ class Playlist:
 
         return youtube
 
-    def get_playlist(self, max_results: int = 500) -> list[dict] | None:
+    def get_playlist(self, max_results: int = 500) -> t.Optional[t.List[dict]]:
         youtube = self.__get_api()
         next_page_token = None
 
@@ -76,10 +77,10 @@ class Playlist:
             if item.get("contentDetails").get("videoId") == video_id:
                 return item
 
-    def to_video_ids(self) -> list[str]:
+    def to_video_ids(self) -> t.List[str]:
         return list(map(lambda x: x.get("contentDetails").get("videoId"), self.items))  # type: ignore
 
-    def to_json(self, output: Path | None = None) -> Path:
+    def to_json(self, output: t.Optional[Path] = None) -> Path:
         if not output:
             output = self.get_json_file()
 
