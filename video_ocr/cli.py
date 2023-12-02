@@ -3,7 +3,6 @@ from pathlib import Path
 
 import click
 
-import video_ocr as vo
 from video_ocr import key_path
 from video_ocr.playlist import Playlist
 from video_ocr.video import Video
@@ -28,7 +27,7 @@ def key_path_command():
 
 @key.command(name="set")
 @click.argument("value", required=True, type=str)
-def keys_set(value):
+def key_set(value):
     """
     Save a key in the .video-ocr.json file
     """
@@ -45,7 +44,12 @@ def keys_set(value):
     path.write_text(json.dumps(current, indent=2) + "\n")
 
 
-@cli.command(name="playlist")
+@cli.group()
+def youtube():
+    "Manage Youtube resources"
+
+
+@youtube.command(name="playlist")
 @click.argument("playlist_id", required=True, type=str)
 @click.option(
     "-o",
@@ -72,25 +76,21 @@ def write_playlist(playlist_id, output):
     playlist.to_json(output_path)
 
 
-@cli.group()
-def video():
-    "Manage videos"
+@youtube.command(name="ls")
+@click.argument("video_id", required=True, type=str)
+def get_resolutions(video_id):
+    """Get resolutions for a video"""
+    resolutions = Video.get_resolutions(video_id)
+    for resolution in resolutions:
+        click.echo(resolution)
 
 
-@video.command(name="run")
+@youtube.command(name="download")
 @click.argument("video_id", required=True, type=str)
 @click.option(
-    "--output-dir",
-    "-od",
-    default=".",
-    type=click.Path(file_okay=False, writable=True),
-)
-@click.option(
-    "--frame-rate",
-    "-fr",
-    default=100,
-    type=int,
-    help="Number of frames per second to extract from the video",
+    "--output",
+    "-o",
+    required=True,
 )
 @click.option(
     "--resolution",
@@ -99,21 +99,46 @@ def video():
     type=str,
     help="Resolution of the video to download. worst/best or a itag. Use `video-ocr video resolutions` to get a list of itags",
 )
-def write_video(video_id, output_dir, frame_rate, resolution):
-    """Write a video to a json file"""
-    vo.config.DATA_DIR = Path(output_dir)
-    video = Video(video_id, frame_rate=frame_rate)
-    video.download_video(resolution=resolution)
-    video.to_frames()
-    video.get_frames_ocr()
+def download_video(video_id, output, resolution):
+    """Download a video"""
+    video = Video(video_file=Path(output))
+    video.download_video(video_id, resolution=resolution)
+
+
+@cli.command(name="run")
+@click.argument(
+    "video_file", required=True, type=click.Path(dir_okay=False, writable=True)
+)
+@click.option(
+    "--output",
+    "-o",
+    default="./output.json",
+    type=click.Path(dir_okay=False, writable=True),
+    help="Directory to store output",
+)
+@click.option(
+    "--frames-dir",
+    "-fd",
+    default="./.frames",
+    type=click.Path(file_okay=False, writable=True),
+    help="Directory to store frames",
+)
+@click.option(
+    "--frame-rate",
+    "-fr",
+    default=100,
+    type=int,
+    help="Number of frames per second to extract from the video",
+)
+def run_ocr(video_file, output, frames_dir, frame_rate):
+    """Write a ocr json file from a video file"""
+
+    video = Video(
+        output_file=Path(output),
+        video_file=Path(video_file),
+        frames_dir=Path(frames_dir),
+        frame_rate=frame_rate,
+    )
+    video.gen_frame_files()
+    video.run_ocr()
     video.to_json()
-
-
-@video.command(name="resolutions")
-@click.argument("video_id", required=True, type=str)
-def get_resolutions(video_id):
-    """Get resolutions for a video"""
-    video = Video(video_id)
-    resolutions = video.get_resolutions()
-    for resolution in resolutions:
-        click.echo(resolution)
