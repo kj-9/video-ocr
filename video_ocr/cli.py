@@ -52,23 +52,37 @@ def youtube():
 @youtube.command(name="playlist")
 @click.argument("playlist_id", required=True, type=str)
 @click.option(
-    "-o",
-    "--output",
-    type=click.Path(file_okay=True, writable=True, dir_okay=False, allow_dash=True),
+    "-n",
+    "--name",
+    type=str,
+    help="Specify the file name",
 )
-def write_playlist(playlist_id, output):
+@click.option(
+    "-d",
+    "--directory",
+    type=click.Path(file_okay=False, writable=True),
+    help="Specify the directory to save the file",
+)
+@click.option(
+    "-f",
+    "--force",
+    is_flag=True,
+    default=False,
+    help="Overwrite the file if it already exists",
+)
+def write_playlist(playlist_id, name, directory, force):
     """Write a playlist to a json file"""
-    if not output:
-        output_path = Path(f"{playlist_id}.json")
+    if not name:
+        name = f"playlist-{playlist_id}.json"
 
-        counter = 1
-        while output_path.exists():
-            # update suffix with -{counter}.json
-            output_path = Path(f"{playlist_id}.{counter}.json")
-            counter += 1
+    if not directory:
+        directory = "."
 
-    else:
-        output_path = Path(output)
+    output_path = Path(directory) / name
+
+    if output_path.exists() and not force:
+        click.echo(f"{output_path} already exists. Use -f to overwrite")
+        return
 
     playlist = Playlist(playlist_id)
     playlist.get_playlist()
@@ -88,9 +102,23 @@ def get_resolutions(video_id):
 @youtube.command(name="download")
 @click.argument("video_id", required=True, type=str)
 @click.option(
-    "--output",
-    "-o",
-    required=True,
+    "-n",
+    "--name",
+    type=str,
+    help="Specify the file name",
+)
+@click.option(
+    "-d",
+    "--directory",
+    type=click.Path(file_okay=False, writable=True),
+    help="Specify the directory to save the file",
+)
+@click.option(
+    "-f",
+    "--force",
+    is_flag=True,
+    default=False,
+    help="Overwrite the file if it already exists",
 )
 @click.option(
     "--resolution",
@@ -99,27 +127,38 @@ def get_resolutions(video_id):
     type=str,
     help="Resolution of the video to download. worst/best or a itag. Use `video-ocr video resolutions` to get a list of itags",
 )
-def download_video(video_id, output, resolution):
+def download_video(video_id, name, directory, force, resolution):
     """Download a video"""
-    video = Video(video_file=Path(output))
+    if not name:
+        name = f"{video_id}.{resolution}.mp4"
+
+    if not directory:
+        directory = "."
+
+    output_path = Path(directory) / name
+
+    if output_path.exists() and not force:
+        click.echo(f"{output_path} already exists. Use -f to overwrite")
+        return
+
+    video = Video(video_file=output_path)
     video.download_video(video_id, resolution=resolution)
 
 
 @cli.command(name="run")
 @click.argument(
-    "video_file", required=True, type=click.Path(dir_okay=False, writable=True)
+    "input_video", required=True, type=click.Path(dir_okay=False, writable=True)
 )
 @click.option(
-    "--output",
-    "-o",
-    default="./output.json",
-    type=click.Path(dir_okay=False, writable=True),
-    help="Directory to store output",
+    "--directory",
+    "-d",
+    default=".",
+    type=click.Path(file_okay=False, writable=True),
+    help="Directory to save the output file",
 )
 @click.option(
     "--frames-dir",
     "-fd",
-    default="./.frames",
     type=click.Path(file_okay=False, writable=True),
     help="Directory to store frames",
 )
@@ -130,12 +169,16 @@ def download_video(video_id, output, resolution):
     type=int,
     help="Number of frames per second to extract from the video",
 )
-def run_ocr(video_file, output, frames_dir, frame_rate):
+def run_ocr(input_video, directory, frames_dir, frame_rate):
     """Write a ocr json file from a video file"""
+    output_file = Path(directory) / "video.json"
+
+    if not frames_dir:
+        frames_dir = Path(directory) / ".frames"
 
     video = Video(
-        output_file=Path(output),
-        video_file=Path(video_file),
+        output_file=Path(output_file),
+        video_file=Path(input_video),
         frames_dir=Path(frames_dir),
         frame_rate=frame_rate,
     )
