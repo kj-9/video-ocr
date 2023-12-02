@@ -1,3 +1,6 @@
+# this file is WIP, but it is a good example of how to use multiprocessing and multithreading
+# turn off mypy for this file
+# mypy: ignore-errors
 import timeit
 import typing as t
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
